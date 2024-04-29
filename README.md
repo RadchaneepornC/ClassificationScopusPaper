@@ -16,6 +16,6 @@
 
 ## Methodology
 
-## Result and Analysis
+## Result and Error Analysis
 
 ## Reference
