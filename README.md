@@ -18,4 +18,6 @@
 
 ## Result and Error Analysis
 
+![Alt text](image/LossCurve.png)
+
 ## Reference
