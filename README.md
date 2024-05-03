@@ -1,4 +1,4 @@
-# Multi-class text classification for Scopus Publications using encoder representation from transformers language model (RoBERTa)
+# Multi-Label text classification for Scopus Publications using encoder representation from transformers language model (RoBERTa)
 
 ![Alt text](https://github.com/RadchaneepornC/ClassificationScopusPaper/blob/main/image/BertViz.gif)
 
@@ -6,7 +6,7 @@
 
 
 ## Motivation
-
+To experiment with how the concept of transfer learning, in terms of using an encoder-based transformer pretrained model (RoBERTa in this case), fine-tuned with the Scopus publication dataset, can improve the text classification performance of the model
 
 
 ## Resource
@@ -15,6 +15,8 @@
 - **Encoder Transformer Model**: [RoBERTa](https://arxiv.org/pdf/1907.11692.pdf)
 
 ## Methodology
+
+[full code here]()
 
 ## Result and Error Analysis
 
