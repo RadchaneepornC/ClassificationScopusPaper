@@ -19,7 +19,9 @@ To experiment with how the concept of transfer learning, in terms of using an en
 
 ## Methodology
 
-[full code here]()
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1P2SevookxKc8DmCGicD5FFsdFXFVevYb?usp=sharing)
+
+
 
 ## Result and Error Analysis
 
