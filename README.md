@@ -21,7 +21,67 @@ To experiment with how the concept of transfer learning, in terms of using an en
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1P2SevookxKc8DmCGicD5FFsdFXFVevYb?usp=sharing)
 
+### I) Install required packages and import important libaries 
 
+```py
+
+#===============Install required packages =====================#
+
+!pip install transformers[torch] datasets evaluate scipy wandb
+
+#================Import Libaries===============================#
+# Data processing
+import numpy as np
+
+# Modeling
+
+from transformers import RobertaTokenizer, RobertaForSequenceClassification, TrainingArguments, Trainer, EarlyStoppingCallback, TextClassificationPipeline
+
+# Hugging Face Dataset
+from datasets import Dataset
+
+# Model performance evaluation
+from sklearn import metrics
+
+#for train, validate spliting
+from sklearn.model_selection import train_test_split
+
+from sklearn.preprocessing import MultiLabelBinarizer
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import wandb
+import tqdm
+
+
+```
+### II) Prepare data for the model
+
+<details><summary>Data Importing & Preprocessing</summary>
+
+</details>
+<details><summary>Data Splitting</summary>
+
+</details>
+<details><summary>Create Custom dataset</summary>
+
+</details>
+
+</details>
+<details><summary>Setup DataLoader</summary>
+
+</details>
+
+### III) Custom model architecture for multiclassification
+
+### IV) Make Baseline
+### V) Build training and validation loop
+
+### VI) Testing finetune Model
+
+### VII) Continue finetuning
+
+### VIII) Apply LoRA technique for testing how model efficiency change if changing full finetuning to parameter efficient finetuning
 
 ## Result and Error Analysis
 
