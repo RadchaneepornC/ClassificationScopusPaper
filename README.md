@@ -136,8 +136,8 @@ df_test['labels'] = df_test['labels'].apply(lambda x : inttofloat(x))
 ```
 
 now the data is in this form
-[!Alt text]()
 
+![Alt Text](image/data.png)
 
 </details>
 <details><summary>Data Splitting</summary>
@@ -658,7 +658,7 @@ the results are shown in the table as below
 |Finetuned model| 0.6687 |
 
 - **Conclusions**
-In this project, we experimented with the concept of transfer learning by fine-tuning an encoder-based transformer pretrained model, RoBERTa, on the Scopus publication dataset for text classification. The results demonstrate a significant improvement in the model's performance after fine-tuning compared to the baseline model. The fine-tuned model achieved a Macro F1 Score of 0.6687, surpassing the baseline model's score of 0.1894(40.3% improvement). This finding highlights the effectiveness of transfer learning in enhancing the model's ability to classify text accurately
+In this project, we experimented with the concept of transfer learning by fine-tuning an encoder-based transformer pretrained model, RoBERTa, on the Scopus publication dataset for text classification. The results demonstrate a significant improvement in the model's performance after fine-tuning compared to the baseline model. The fine-tuned model achieved a Macro F1 Score of 0.6687, surpassing the baseline model's score of 0.1894 ✨ **(40.3% improvement)** ✨. This finding highlights the effectiveness of transfer learning in enhancing the model's ability to classify text accurately
 
 - **Error Analysis**
 
