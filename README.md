@@ -16,6 +16,8 @@ To experiment with how the concept of transfer learning, in terms of using an en
 
 ## Statical Metric Using
 
+- The F1 macro score provides an overall measure of the model's performance across all labels, treating each label equally
+- The F1 micro score, on the other hand, gives more weight to the most frequent labels and is influenced by the class imbalance
 
 ## Methodology
 
@@ -378,6 +380,50 @@ test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 
 ### III) Make Baseline
+For this project, I use RoBERTa without futher finetunining as a baseline
+
+```python
+#sets the model to evaluation mode, disables certain layers like dropout and batch normalization that behave differently during training and evaluation
+model.eval()
+
+#sets the model to evaluation mode, disables certain layers like dropout and batch normalization that behave differently during training and evaluation
+test_preds = []     #store the predicted probabilities
+test_labels = []    #store the true labels for each sample
+
+#disables gradient calculation during the forward pass, as we don't need gradients for inference, this save memory and speeds up the computation
+with torch.no_grad():
+
+    #iterates over the batches of data from the test data loader
+    for batch in tqdm(test_loader, desc="Testing"):
+
+	#move the input IDs tensor, attention mask tensor, labels tensor to the specified device, GPU in this case
+	input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+	#forward pass: pass the input IDs and attention mask through the model to obtain the logits (raw outputs before applying the activation function)
+        logits = model(input_ids, attention_mask)
+
+	# apply sigmoid activation to obtain predicted probabilities, move 	the tensor to the CPU and convert it to a numpy array
+	probs = torch.sigmoid(logits).cpu().numpy()
+
+	#extend the test predictions and labels lists
+	test_preds.extend(probs)
+        test_labels.extend(labels.cpu().numpy())
+
+#convert the test predictions and labels to numpy arrays
+test_preds = np.array(test_preds)
+test_labels = np.array(test_labels)
+
+#Calculate the F1 macro score by comparing the true labels (test_labels) with the predicted labels (test_preds > 0.5). The average='macro' argument computes the F1 score for each label independently and then takes the unweighted mean
+f1_macro = metrics.f1_score(test_labels, test_preds > 0.5, average='macro')
+print(f"Test F1 Macro Score: {f1_macro:.4f}")
+```
+>After using pretrained RoBERTa test with testset dataloader, I got F1 Macro Score: 0.1894
+
+
+
+
 ### IV) Build training and validation loop
 
 ### V) Testing finetune Model
