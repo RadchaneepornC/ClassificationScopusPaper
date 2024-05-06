@@ -531,19 +531,19 @@ for epoch in range(num_epochs):
         attention_mask = batch['attention_mask'].to(device)
         labels = batch['labels'].to(device)
 
-	#zero the gradients
+	#zero the gradients for resetting loss gradients from previous epoch
         optimizer.zero_grad()
 
 	#forward pass
         logits = model(input_ids, attention_mask)
 
-	#calculate the loss
+	#calculate the loss on current batch
         loss = criterion(logits, labels.float())
 
-	#backward pass
+	#backward pass to calculate loss gradient
 	loss.backward()
 
-	#update the model parameters
+	#update the model parameters(weights) using loss gradient
 	optimizer.step()
 
 	#accumulate the training loss and increment the step counter
