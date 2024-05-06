@@ -133,13 +133,124 @@ df_train['labels'] = df_train['labels'].apply(lambda x : inttofloat(x))
 df_test['labels'] = df_test['labels'].apply(lambda x : inttofloat(x))
 ```
 
+now the data is in this form
+[!Alt text]()
 
 
 </details>
 <details><summary>Data Splitting</summary>
 
+```python
+#split the data of train set in to train and validate data with the ration 80:20, use random_'state'to ensure reproducibility
+df_train, df_validate = train_test_split(df_train, test_size=0.2,random_state=42)
+
+#reset index and drop the old index
+df_train = df_train.reset_index(drop = True)
+df_validate = df_validate.reset_index(drop = True)
+
+#create huggindface arrow dataset from pandas DataFrame 
+hg_train = Dataset.from_pandas(df_train)
+hg_valid = Dataset.from_pandas(df_validate)
+hg_test = Dataset.from_pandas(df_test)
+```
+
+Note: **Arrow dataset format** is a binary format optimized for efficient storage and processing within the Hugging Face framework, below is the example of arrow dataset structured
+
+```python
+
+import datasets
+
+# Create an Arrow dataset
+dataset = datasets.Dataset.from_dict(
+    {
+        "id": [1, 2, 3],
+        "text": ["This is the first line.", "This is the second line.", "This is the third line."],
+        "label": ["positive", "negative", "neutral"]
+    }
+)
+
+# Access data in the Arrow dataset
+print(dataset[0])  # {"id": 1, "text": "This is the first line.", "label": "positive"}
+print(dataset["text"][1])  # "This is the second line
+
+```
+
 </details>
+
+
+<details><summary>Initialize the tokenizer</summary>
+
+This tokenizer is responsible for preprocessing the text data into a format that can be fed into the model
+  
+  ```python
+
+#Download tokenizer
+from transformers import RobertaTokenizer
+tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+
+# Funtion to tokenize data
+def tokenize_dataset(data):
+    return tokenizer(data["Context"],
+                     max_length=512,
+                     truncation=True,
+                     padding="max_length")
+
+# Tokenize the dataset
+dataset_train = hg_train.map(tokenize_dataset)
+dataset_valid = hg_valid.map(tokenize_dataset)
+dataset_test = hg_test.map(tokenize_dataset)
+
+
+```
+
+Note If we take a look at tokenizer, its inside be like this 
+
+```
+RobertaTokenizer(name_or_path='roberta-base', vocab_size=50265, model_max_length=512, is_fast=False, padding_side='right', truncation_side='right', special_tokens={'bos_token': '<s>', 'eos_token': '</s>', 'unk_token': '<unk>', 'sep_token': '</s>', 'pad_token': '<pad>', 'cls_token': '<s>', 'mask_token': '<mask>'}, clean_up_tokenization_spaces=True),  added_tokens_decoder={
+	0: AddedToken("<s>", rstrip=False, lstrip=False, single_word=False, normalized=True, special=True),
+	1: AddedToken("<pad>", rstrip=False, lstrip=False, single_word=False, normalized=True, special=True),
+	2: AddedToken("</s>", rstrip=False, lstrip=False, single_word=False, normalized=True, special=True),
+	3: AddedToken("<unk>", rstrip=False, lstrip=False, single_word=False, normalized=True, special=True),
+	50264: AddedToken("<mask>", rstrip=False, lstrip=True, single_word=False, normalized=False, special=True),
+}
+```
+
+if we print the ```dataset_train```, ```dataset_valid```, ```dataset_test``` the structure inside them will be like this
+
+```
+ataset({
+    features: ['Context', 'labels', 'input_ids', 'attention_mask'],
+    num_rows: 363
+})
+Dataset({
+    features: ['Context', 'labels', 'input_ids', 'attention_mask'],
+    num_rows: 91
+})
+Dataset({
+    features: ['Context', 'labels', 'input_ids', 'attention_mask'],
+    num_rows: 151
+})
+```
+
+
+
+
+
+
+</details>
+
 <details><summary>Create Custom dataset</summary>
+
+  
+  ```python
+
+
+
+
+
+```
+
+
 
 </details>
 
