@@ -479,6 +479,143 @@ Probabilities above the threshold are assigned a value of 1 (class present), whi
 
 ### IV) Build training and validation loop
 
+```python
+
+#Login with WeightandBias(WandB) to track the trainloss and validate loss during training the model
+from google.colab import userdata
+wandb.login(key=userdata.get('secret_wandb'))
+
+import wandb
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+#initial wandb for experiment tracking and update the configuration with the specified hyperparameters
+wandb.init(project='scopusclassification', name='run3')
+wandb.config.update({
+    'learning_rate': 1e-5,
+    'batch_size': 16,
+    'num_epochs': 20,
+    'model_architecture': 'RoBERTa',
+    'scheduler': 'CosineAnnealingLR'
+})
+
+#set the device to GPU if available, otherwise use CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+#move the model to the specified device, GPU in this case
+model.to(device)
+
+#define the optimizer, loss function, and learning rate scheduler:
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
+criterion = nn.BCEWithLogitsLoss()
+steps_per_epoch = len(train_loader)
+num_epochs = 20
+T_max = num_epochs * steps_per_epoch
+scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=T_max)
+
+       ################## Training Loop ########################
+#iterate over the specified number of epoch
+for epoch in range(num_epochs):
+
+    #set the model to training mode
+    model.train()
+
+    #initialize variables to track training loss and steps
+    train_loss = 0.0
+    train_steps = 0
+
+    #iterate over the training data loader
+    for batch in tqdm(train_loader, desc=f"Training Epoch {epoch}"):
+
+	#move the input data to the device
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+	#zero the gradients
+        optimizer.zero_grad()
+
+	#forward pass
+        logits = model(input_ids, attention_mask)
+
+	#calculate the loss
+        loss = criterion(logits, labels.float())
+
+	#backward pass
+	loss.backward()
+
+	#update the model parameters
+	optimizer.step()
+
+	#accumulate the training loss and increment the step counter
+        train_loss += loss.item()
+        train_steps += 1
+
+    #calculate the average training loss
+    train_loss /= train_steps
+
+    #calculate and log the average training loss for the epoch, then log the training loss to wandb
+    print(f"Training Loss: {train_loss:.4f}")
+    wandb.log({'train_loss': train_loss}, step=epoch)
+
+
+    ################## Validation Loop ########################
+
+    #set the model to evaluation mode
+    model.eval()
+
+    #initialize variables to track validation loss, predictions, and labels
+    valid_loss = 0.0
+    valid_steps = 0
+    valid_preds = []
+    valid_labels = []
+
+    #disable gradient calculation (likes when inferencing)
+    with torch.no_grad():
+
+	#futher processes same as inference process describe above, but for the validation loop, we iterate over the validation data loader
+        for batch in tqdm(valid_loader, desc=f"Validation Epoch {epoch}"):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+
+            logits = model(input_ids, attention_mask)
+            loss = criterion(logits, labels.float())
+
+            probs = torch.sigmoid(logits).cpu().numpy()
+            valid_preds.extend(probs)
+            valid_labels.extend(labels.cpu().numpy())
+
+            valid_loss += loss.item()
+            valid_steps += 1
+
+    valid_loss /= valid_steps
+    print(f"Validation Loss: {valid_loss:.4f}")
+
+
+    valid_preds = np.array(valid_preds)
+    valid_labels = np.array(valid_labels)
+    f1_macro = metrics.f1_score(valid_labels, valid_preds > 0.5, average='macro')
+    print(f"Validation F1 Macro Score: {f1_macro:.4f}")
+    wandb.log({'val_loss': valid_loss, 'val_f1_macro': f1_macro}, step=epoch)
+
+    #ppdate the learning rate based on the cosine annealing schedule
+    scheduler.step()
+
+#finish the wandb run and sync the logged data
+wandb.finish()
+
+
+
+
+```
+
+
+
+
+
+
+
+
 ### V) Testing finetune Model
 
 ### VI) Continue finetuning
