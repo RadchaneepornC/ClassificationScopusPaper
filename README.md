@@ -29,7 +29,7 @@ To experiment with how the concept of transfer learning, in terms of using an en
 
 #===============Install required packages =====================#
 
-!pip install transformers[torch] datasets evaluate scipy wandb
+!pip install transformers[torch] datasets evaluate wandb
 
 #================Import Libaries===============================#
 # Data processing
