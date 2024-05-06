@@ -16,8 +16,8 @@ To experiment with how the concept of transfer learning, in terms of using an en
 
 ## Statical Metric Using
 
-- The F1 macro score provides an overall measure of the model's performance across all labels, treating each label equally
-- The F1 micro score, on the other hand, gives more weight to the most frequent labels and is influenced by the class imbalance
+- The **F1 macro score** provides an overall measure of the model's performance across all labels, treating each label equally
+
 
 ## Methodology
 
@@ -611,19 +611,64 @@ wandb.finish()
 
 
 
-
-
-
-
-
 ### V) Testing finetune Model
 
-### VI) Continue finetuning
+use the model full finetuning with the dataset test with the test_loader, for this path, the model will bring the model at the epoch having the lowest validate loss, epoch 20, as loss curve shown below
 
-### VII) Apply LoRA technique for testing how model efficiency change if changing full finetuning to parameter efficient finetuning
-
-## Result and Error Analysis
 
 ![Alt text](image/LossCurve.png)
 
-## Reference
+```python
+
+model.eval()
+test_preds = []
+test_labels = []
+
+with torch.no_grad():
+    for batch in tqdm(test_loader, desc="Testing"):
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+        logits = model(input_ids, attention_mask)
+        probs = torch.sigmoid(logits).cpu().numpy()
+        test_preds.extend(probs)
+        test_labels.extend(labels.cpu().numpy())
+
+test_preds = np.array(test_preds)
+test_labels = np.array(test_labels)
+
+f1_macro = metrics.f1_score(test_labels, test_preds > 0.5, average='macro')
+print(f"Test F1 Macro Score: {f1_macro:.4f}")
+f1_micro = metrics.f1_score(test_labels, test_preds > 0.5, average='micro')
+print(f"Test F1 Micro Score: {f1_micro:.4f}")
+
+
+```
+
+
+
+## Result and Error Analysis
+
+
+the results are shown in the table as below
+| Model    |   Macro F1 Score  |                                        
+| ----------| -----------------|
+| Baseline | 0.1894   |
+|Finetuned model| 0.6687 |
+
+- **Conclusions**
+In this project, we experimented with the concept of transfer learning by fine-tuning an encoder-based transformer pretrained model, RoBERTa, on the Scopus publication dataset for text classification. The results demonstrate a significant improvement in the model's performance after fine-tuning compared to the baseline model. The fine-tuned model achieved a Macro F1 Score of 0.6687, surpassing the baseline model's score of 0.1894(40.3% improvement). This finding highlights the effectiveness of transfer learning in enhancing the model's ability to classify text accurately
+
+- **Error Analysis**
+
+  - Class imbalance and limited training data may lead to misclassifications
+  - Ambiguous class boundaries and domain-specific language can pose challenges
+
+
+- **Further Improvement**
+
+   - Increase training data size and diversity through data augmentation techniques
+   - Apply class balancing methods to handle imbalanced datasets
+   - Experiment with fine-tuning strategies and ensemble methods
+   - Adapt the model to the specific domain by pretraining on relevant scientific literature
