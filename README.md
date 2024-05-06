@@ -59,6 +59,82 @@ import tqdm
 
 <details><summary>Data Importing & Preprocessing</summary>
 
+```python
+  
+#clone dataset storing in git repo
+! git clone https://github.com/RadchaneepornC/ClassificationScopusPaper
+
+ #import dataset as DataFrame
+import pandas as pd
+df_train = pd.read_json("/content/ClassificationScopusPaper/dataset/train_student.json")
+print(df_train)
+
+df_test = pd.read_json("/content/ClassificationScopusPaper/dataset/test_student.json")
+print(df_test)
+
+#Transpose Data with ```.T``` attribute to swap column and row axis
+df_train = df_train.T
+df_test = df_test.T
+
+print(df_train.head())
+print(df_test.head())
+
+#combline content in the column name Title and Abstract and assign as new column name Context
+df_train["Context"]=df_train["Title"]+'.'+df_train["Abstract"]
+df_test["Context"]=df_test["Title"]+'.'+df_test["Abstract"]
+
+#drop the old column after combline them
+df_train.drop(columns=['Title','Abstract'], inplace = True)
+df_test.drop(columns=['Title','Abstract'], inplace = True)
+
+#reset index and drop the old index column
+df_train=df_train.reset_index()
+df_train.drop(columns=['index'], inplace =True)
+df_test.reset_index(inplace = True, drop = True)
+
+#rearrange position of the column
+df_train = df_train[["Context","Classes"]]
+
+```
+
+</details>
+
+<details><summary>Label Encoding</summary>
+
+```python
+
+#Initial binarizer named MultiLabelBinarizer from scikit-learn library to encode the multi-label class
+mlb = MultiLabelBinarizer(sparse_output=False)
+
+#Encode the classes by fitting the MultiLabelBinarizer on the 'Classes' column and transforming thr classes into a binary matrix, this return encoded matrix
+encoder_train = mlb.fit_transform(df_train["Classes"])
+encoder_test = mlb.fit_transform(df_test["Classes"])
+
+#Convert encoded matrices to DataFrame
+encoder_train = pd.DataFrame(encoder_train, columns = mlb.classes_ )
+encoder_test = pd.DataFrame(encoder_test, columns = mlb.classes_ )
+
+#Join Encoded DataFrame with original DataFrame
+df_train = df_train.join(encoder_train)
+df_test = df_test.join(encoder_test)
+
+#create new column named labels storing the label encode list converted from encode class
+df_train['labels'] = df_train[mlb.classes_].values.tolist()
+df_test['labels'] = df_test[mlb.classes_].values.tolist()
+
+#drop the old label columns
+df_train = df_train.drop(columns = ['Classes','AUTO', 'CE', 'CHE', 'CPE', 'EE', 'IE', 'ME'])
+df_test = df_test.drop(columns = ['Classes','AUTO', 'CE', 'CHE', 'CPE', 'EE', 'IE', 'ME'])
+
+#convert 'labels' Column value from Int to Float type
+def inttofloat(x):
+return list(np.float_(x))
+df_train['labels'] = df_train['labels'].apply(lambda x : inttofloat(x))
+df_test['labels'] = df_test['labels'].apply(lambda x : inttofloat(x))
+```
+
+
+
 </details>
 <details><summary>Data Splitting</summary>
 
