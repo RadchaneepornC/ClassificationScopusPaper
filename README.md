@@ -613,7 +613,7 @@ wandb.finish()
 
 ### V) Testing finetune Model
 
-use the model full finetuning with the dataset test with the test_loader, for this path, the model will bring the model at the epoch having the lowest validate loss, epoch 20, as loss curve shown below
+use the model full finetuning with the dataset test with the test_loader, for this path, the model will bring the model at the epoch having the lowest validate loss, epoch 10, as loss curve shown below
 
 
 ![Alt text](image/LossCurve.png)
