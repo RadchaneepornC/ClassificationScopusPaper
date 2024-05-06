@@ -232,43 +232,159 @@ Dataset({
 })
 ```
 
+- **input_ids**:  are the integer representations of the tokens based on the tokenizer's vocabulary after our input text is split into tokens by tokenizer, the ```input_ids``` stored as a tensor or a list 
 
-
-
+- **attention_mask**: is the tensor or a list indicating which tokens should be attended to and which ones should be ignored, it has the same length as the input IDs
 
 
 </details>
 
 <details><summary>Create Custom dataset</summary>
+<br>
+this process used for combining the tokenized encodings with the corresponding labels
 
-  
-  ```python
+**Processes occured within this step:**
+1. **The ```MultiLabelDataset``` class is defined as a subclass of ```torch.utils.data.Dataset```**
+
+- The ```__init__``` method takes the tokenized encodings and labels as input and stores them as instance variables.
+- The ```__getitem__``` method is called when accessing an item in the dataset by index. It retrieves the tokenized encodings and labels for the specified index and converts them to PyTorch tensors.
+- The ```__len__``` method returns the length of the dataset, which is the number of samples.
+
+2. **The tokenized datasets (```dataset_train```, ```dataset_valid```, ```dataset_test```) and the corresponding labels (```df_train['labels'].tolist()```, ```df_validate['labels'].tolist()```, ```df_test['labels'].tolist()```) are passed to the ```MultiLabelDataset``` class to create instances of the custom dataset**
+
+- The tokenized encodings contain the ```input IDs```, ```attention masks```, and other relevant information obtained from the tokenization process
+- The labels are typically stored in a separate dataframe or list and are passed as the second argument to the ```MultiLabelDataset``` constructor
+
+3. **The MultiLabelDataset instances (```train_dataset```, ```valid_dataset```, ```test_dataset```) are created by passing the respective tokenized encodings and labels**
+
+These instances represent the complete dataset, combining the tokenized encodings with their corresponding labels in a single object
 
 
+```python
+
+import torch
+class MultiLabelDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = {key: torch.tensor(self.encodings[key][idx]) for key in ['input_ids', 'attention_mask']}
+        item['labels'] = torch.tensor(self.labels[idx])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+train_dataset = MultiLabelDataset(dataset_train, df_train['labels'].tolist())
+valid_dataset = MultiLabelDataset(dataset_valid, df_validate['labels'].tolist())
+test_dataset = MultiLabelDataset(dataset_test, df_test['labels'].tolist())
+```
+
+</details>
+
+<details><summary>Custom Model class and setup DataLoader</summary>
+<br>
+	
+**Obectives of this step**
+- The ```RoBERTaForMultiLabelClassification``` model is defined and instantiated with the specified number of labels.
+- The model is moved to the appropriate device (GPU if available, otherwise CPU).
+- Data loaders (```train_loader```, ```valid_loader```, ```test_loader```) are created for efficient batching and iteration during training, validation, and testing
+- The custom model architecture allows for fine-tuning the pre-trained RoBERTa model for multi-label classification by adding a dropout layer and a classifier layer on top of the RoBERTa output.
+- The data loaders provide an efficient way to feed the data to the model during training, validation, and testing. They handle batching, shuffling (for training), and iteration over the datasets.
+- With the model and data loaders set up, you can proceed to train the model, evaluate its performance on the validation set, and finally test it on the test set to assess its performance on unseen data.
+
+**Process occured in this step**
+
+1. **The ```RoBERTaForMultiLabelClassification``` class is defined as a subclass of ```nn.Module```**
+
+- The ```__init__``` method initializes the model architecture
+which have following functions:
+	-  loads the pre-trained RoBERTa model using ```RobertaModel.from_pretrained('roberta-base')```
+	- defines a dropout layer (```nn.Dropout(0.1)```) to prevent overfitting.
+	- defines a classifier layer (```nn.Linear```) that takes the output of RoBERTa and maps it to the number of labels for multi-label classification.
 
 
+2. **The ```forward``` method defines the forward pass of the model, which have following functions:**
+
+	- takes the input IDs and attention mask as inputs.
+	- passes the inputs through the pre-trained RoBERTa model to obtain the output representations
+	- retrieves the pooled output (```outputs.pooler_output```), which is typically used for classification tasks
+	- applies dropout to the pooled output to regularize the model.
+	- passes the pooled output through the classifier layer to obtain the logits for each label
+
+
+3. **An instance of the RoBERTaForMultiLabelClassification model is created with the specified number of labels (7 in this case)**
+
+4. **The code sets a random seed (SEED = 42) for reproducibility across different runs**
+
+	- it sets the random seed for PyTorch (```torch.manual_seed(SEED)```), Python's built-in random module (```random.seed(SEED)```), and NumPy (```np.random.seed(SEED)```)
+
+
+5. **The device is set to 'cuda' if a GPU is available, otherwise it uses 'cpu'**
+
+	- The model is moved to the specified device using ```model.to(device)```
+
+
+6. **Data loaders are created for the training, validation, and testing datasets using PyTorch's DataLoader class**
+
+	- The ```train_loader``` is created with ```train_dataset```, a batch size of 16, and ```shuffle=True``` to randomly shuffle the training data during each epoch.
+	- The ```valid_loader``` and ```test_loader``` are created with ```valid_dataset``` and ```test_dataset```, respectively, with a batch size of 16 and ```shuffle=False``` to maintain the original order of the data.
+
+```python
+
+from transformers import RobertaModel
+import torch.nn as nn
+
+class RoBERTaForMultiLabelClassification(nn.Module):
+    def __init__(self, num_labels):
+        super(RoBERTaForMultiLabelClassification, self).__init__()
+        self.roberta = RobertaModel.from_pretrained('roberta-base')
+        self.dropout = nn.Dropout(0.1)
+        self.classifier = nn.Linear(self.roberta.config.hidden_size, num_labels)
+
+    def forward(self, input_ids, attention_mask):
+        outputs = self.roberta(input_ids, attention_mask=attention_mask)
+        pooled_output = outputs.pooler_output
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
+        return logits
+
+model = RoBERTaForMultiLabelClassification(num_labels=7)
+
+import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+import random
+
+SEED = 42
+
+torch.manual_seed(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+valid_loader = DataLoader(valid_dataset, batch_size=16, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 ```
 
-
-
 </details>
 
-</details>
-<details><summary>Setup DataLoader</summary>
 
-</details>
 
-### III) Custom model architecture for multiclassification
 
-### IV) Make Baseline
-### V) Build training and validation loop
+### III) Make Baseline
+### IV) Build training and validation loop
 
-### VI) Testing finetune Model
+### V) Testing finetune Model
 
-### VII) Continue finetuning
+### VI) Continue finetuning
 
-### VIII) Apply LoRA technique for testing how model efficiency change if changing full finetuning to parameter efficient finetuning
+### VII) Apply LoRA technique for testing how model efficiency change if changing full finetuning to parameter efficient finetuning
 
 ## Result and Error Analysis
 
