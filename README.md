@@ -404,7 +404,7 @@ with torch.no_grad():
 	#forward pass: pass the input IDs and attention mask through the model to obtain the logits (raw outputs before applying the activation function)
         logits = model(input_ids, attention_mask)
 
-	# apply sigmoid activation to obtain predicted probabilities, move 	the tensor to the CPU and convert it to a numpy array
+	# apply sigmoid activation to obtain predicted probabilities, move the tensor to the CPU and convert it to a numpy array
 	probs = torch.sigmoid(logits).cpu().numpy()
 
 	#extend the test predictions and labels lists
@@ -421,8 +421,61 @@ print(f"Test F1 Macro Score: {f1_macro:.4f}")
 ```
 >After using pretrained RoBERTa test with testset dataloader, I got F1 Macro Score: 0.1894
 
+**Below are examples of output to help better understand the calculation for the inference process:**
+
+- **Logits** return from ```model(input_ids, attention_mask)``` are like below:
+```, the number of logits for each sample corresponds to the number of classes in the multi-label classification problem, for this it should be 7 elements in each list of sample
+
+Logits:
+Sample 1: [-1.2, 0.8, 2.3, -0.5]
+Sample 2: [0.6, -0.9, 1.7, 0.2]
+Sample 3: [-0.3, 1.1, -0.2, 0.9]
+
+```
+- **Probabilities** return from ```probs = torch.sigmoid(logits).cpu().numpy()```  represent the model's confidence in assigning each class label to a sample, like example below
+
+```Probabilities:
+Sample 1: [0.23, 0.69, 0.91, 0.38]
+Sample 2: [0.65, 0.29, 0.85, 0.55]
+Sample 3: [0.43, 0.75, 0.45, 0.71]
+```
+
+sigmoid function squashes the logits into a range between 0 and 1, representing the probability of each class being present
+
+  ```sigmoid(x) = 1 / (1 + exp(-x))```
+
+```Logits: [-2.0, 0.5, 3.0, -1.0]
+
+Applying sigmoid function:
+sigmoid(-2.0) = 1 / (1 + exp(2.0)) = 0.119
+sigmoid(0.5) = 1 / (1 + exp(-0.5)) = 0.622
+sigmoid(3.0) = 1 / (1 + exp(-3.0)) = 0.953
+sigmoid(-1.0) = 1 / (1 + exp(1.0)) = 0.269
+
+Probabilities: [0.119, 0.622, 0.953, 0.269]
+```
+  
+a probability closer to 1 indicates a higher likelihood of the class being assigned, while a probability closer to 0 indicates a lower likelihood
 
 
+- **Predictions**
+Probabilities above the threshold are considered as positive predictions (class present), while probabilities below the threshold are considered as negative predictions (class absent), in the code, test_preds > 0.5 applies a threshold of 0.5 to the predicted probabilities to obtain the final class predictions, example like below
+
+```
+Threshold: 0.5
+
+Probabilities:
+Sample 1: [0.23, 0.69, 0.91, 0.38]
+Sample 2: [0.65, 0.29, 0.85, 0.55]
+Sample 3: [0.43, 0.75, 0.45, 0.71]
+
+Predictions:
+Sample 1: [0, 1, 1, 0]
+Sample 2: [1, 0, 1, 1]
+Sample 3: [0, 1, 0, 1]
+```
+
+Probabilities above the threshold are assigned a value of 1 (class present), while probabilities below the threshold are assigned a value of 0 (class absent)
 
 ### IV) Build training and validation loop
 
