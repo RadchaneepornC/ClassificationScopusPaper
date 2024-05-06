@@ -74,7 +74,7 @@ print(df_train)
 df_test = pd.read_json("/content/ClassificationScopusPaper/dataset/test_student.json")
 print(df_test)
 
-#Transpose Data with ```.T``` attribute to swap column and row axis
+#Transpose Data with .T attribute to swap column and row axis
 df_train = df_train.T
 df_test = df_test.T
 
