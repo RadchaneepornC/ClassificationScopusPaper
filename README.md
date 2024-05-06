@@ -513,6 +513,12 @@ T_max = num_epochs * steps_per_epoch
 scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=T_max)
 
        ################## Training Loop ########################
+
+#apply for tracking validate loss
+best_valid_loss = float('inf')
+best_model_state = None
+
+
 #iterate over the specified number of epoch
 for epoch in range(num_epochs):
 
@@ -598,18 +604,137 @@ for epoch in range(num_epochs):
     print(f"Validation F1 Macro Score: {f1_macro:.4f}")
     wandb.log({'val_loss': valid_loss, 'val_f1_macro': f1_macro}, step=epoch)
 
-    #ppdate the learning rate based on the cosine annealing schedule
+    # Save the model if the validation loss improves
+    if valid_loss < best_valid_loss:
+        best_valid_loss = valid_loss
+        best_model_state = model.state_dict()
+        torch.save(best_model_state, 'best_model.pth')
+
+
+    #update the learning rate based on the cosine annealing schedule
     scheduler.step()
 
 #finish the wandb run and sync the logged data
 wandb.finish()
 
-
+# Load the best model state for inference
+model.load_state_dict(torch.load('best_model.pth'))
 
 
 ```
 
+In case that you want to continue finetuning from checkpoint, use below code for futher finetuning
 
+```python
+
+import wandb
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+wandb.init(project='scopusclassification', name='run4_continue_finetuning', resume='allow')
+
+wandb.config.update({
+    'learning_rate': 1e-5,
+    'batch_size': 16,
+    'num_epochs': 40,  # Increase the number of epochs
+    'model_architecture': 'RoBERTa',
+    'scheduler': 'CosineAnnealingLR'
+})
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Load the best model state
+model.load_state_dict(torch.load('best_model.pth'))
+model.to(device)
+
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
+criterion = nn.BCEWithLogitsLoss()
+
+steps_per_epoch = len(train_loader)
+num_epochs = 40  # Increase the number of epochs
+T_max = num_epochs * steps_per_epoch
+
+scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=T_max)
+
+best_valid_loss = float('inf')
+best_model_state = None
+
+# Start from the last epoch
+start_epoch = 20  # Adjust this if needed
+
+for epoch in range(start_epoch, num_epochs):
+    model.train()
+    train_loss = 0.0
+    train_steps = 0
+
+    for batch in tqdm(train_loader, desc=f"Training Epoch {epoch}"):
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+        optimizer.zero_grad()
+        logits = model(input_ids, attention_mask)
+        loss = criterion(logits, labels.float())
+        loss.backward()
+        optimizer.step()
+
+        train_loss += loss.item()
+        train_steps += 1
+
+    train_loss /= train_steps
+    print(f"Training Loss: {train_loss:.4f}")
+    wandb.log({'train_loss': train_loss}, step=epoch)
+
+    model.eval()
+    valid_loss = 0.0
+    valid_steps = 0
+    valid_preds = []
+    valid_labels = []
+
+    with torch.no_grad():
+        for batch in tqdm(valid_loader, desc=f"Validation Epoch {epoch}"):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+
+            logits = model(input_ids, attention_mask)
+            loss = criterion(logits, labels.float())
+
+            probs = torch.sigmoid(logits).cpu().numpy()
+            valid_preds.extend(probs)
+            valid_labels.extend(labels.cpu().numpy())
+
+            valid_loss += loss.item()
+            valid_steps += 1
+
+    valid_loss /= valid_steps
+    print(f"Validation Loss: {valid_loss:.4f}")
+
+
+    valid_preds = np.array(valid_preds)
+    valid_labels = np.array(valid_labels)
+    f1_macro = metrics.f1_score(valid_labels, valid_preds > 0.5, average='macro')
+    f1_micro = metrics.f1_score(valid_labels, valid_preds > 0.5, average='micro')
+    print(f"Validation F1 Macro Score: {f1_macro:.4f}")
+    print(f"Validation F1 Micro Score: {f1_micro:.4f}")
+    wandb.log({'val_loss': valid_loss, 'val_f1_macro': f1_macro, 'val_f1_micro':f1_micro }, step=epoch)
+
+
+    # Save the model if the validation loss improves
+    if valid_loss < best_valid_loss:
+        best_valid_loss = valid_loss
+        best_model_state = model.state_dict()
+        torch.save(best_model_state, 'best_model.pth')
+
+
+
+    scheduler.step()
+
+wandb.finish()
+
+# Load the best model state for inference
+model.load_state_dict(torch.load('best_model.pth'))
+
+```
 
 ### V) Testing finetune Model
 
